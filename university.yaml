@@ -1,0 +1,16 @@
+classes:
+  Student:
+    comment: "Студент университета"
+    properties:
+      enrolledIn:
+        range: Course
+        type: object
+      studentId:
+        range: string
+        type: data
+  Course:
+    comment: "Учебный курс"
+    properties:
+      creditHours:
+        range: integer
+        type: data

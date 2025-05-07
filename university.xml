@@ -1,0 +1,9 @@
+<ontology>
+  <class name="Student" comment="Студент университета">
+    <property name="enrolledIn" range="Course" type="object"/>
+    <property name="studentId" type="data" range="string"/>
+  </class>
+  <class name="Course" comment="Учебный курс">
+    <property name="creditHours" type="data" range="integer"/>
+  </class>
+</ontology>
