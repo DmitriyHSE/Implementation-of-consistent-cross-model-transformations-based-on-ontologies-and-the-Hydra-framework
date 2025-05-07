@@ -1,98 +1,179 @@
-from rdflib import Graph, RDF, RDFS, OWL
+from rdflib import Graph, RDF, RDFS, OWL, XSD, URIRef  # Добавлен URIRef
 from jinja2 import Template
 from pathlib import Path
 import logging
+from typing import Dict, List, Optional, Union  # Добавлен Union
 
 
-def generate_python_classes(owl_file: str) -> None:
-    """
-    Генерация Python-классов из OWL-файла
-    Args:
-        owl_file: Путь к OWL-файлу (относительный или абсолютный)
-    """
-    # 1. Проверка и нормализация пути
-    owl_path = Path(owl_file).absolute()
-    if not owl_path.exists():
-        raise FileNotFoundError(f"OWL файл не найден по пути: {owl_path}")
-    if not owl_path.is_file():
-        raise ValueError(f"Указанный путь не является файлом: {owl_path}")
+class OwlToPythonConverter:
+    def __init__(self):
+        self.ns = {}
+        self.class_hierarchy = {}
 
-    # 2. Загрузка и парсинг OWL
-    g = Graph()
-    try:
-        g.parse(owl_path)
-        logging.info(f"Успешно загружен OWL-файл: {owl_path}")
-    except Exception as e:
-        raise ValueError(f"Ошибка парсинга OWL-файла: {str(e)}")
+    def convert(self, owl_file: str, output_dir: str = "generated") -> None:
+        owl_path = Path(owl_file).absolute()
+        self._validate_input(owl_path)
 
-    # 3. Извлечение классов
-    classes = set()
-    for cls in g.subjects(RDF.type, OWL.Class):
-        class_name = str(cls).split("#")[-1].split("/")[-1]
-        if class_name:
-            classes.add(class_name)
+        g = Graph()
+        self._parse_owl(g, owl_path)
+        self._extract_namespaces(g)
+        self._build_class_hierarchy(g)
 
-    # 4. Извлечение свойств
-    properties = []
-    for prop in g.subjects(RDF.type, OWL.ObjectProperty):
-        prop_name = str(prop).split("#")[-1].split("/")[-1]
-        domain = g.value(prop, RDFS.domain)
-        range_ = g.value(prop, RDFS.range)
+        classes_info = self._extract_classes(g)
+        properties_info = self._extract_properties(g)
 
-        domain_name = str(domain).split("#")[-1].split("/")[-1] if domain else None
-        range_name = str(range_).split("#")[-1].split("/")[-1] if range_ else None
+        self._generate_code(
+            owl_path=owl_path,
+            classes=classes_info,
+            properties=properties_info,
+            output_dir=output_dir
+        )
 
-        properties.append({
+    def _validate_input(self, owl_path: Path):
+        if not owl_path.exists():
+            raise FileNotFoundError(f"OWL файл не найден: {owl_path}")
+        if not owl_path.suffix == '.owl':
+            raise ValueError("Требуется файл с расширением .owl")
+
+    def _parse_owl(self, g: Graph, owl_path: Path):
+        try:
+            g.parse(owl_path)
+            logging.info(f"Загружена онтология: {owl_path}")
+        except Exception as e:
+            raise ValueError(f"Ошибка парсинга OWL: {str(e)}")
+
+    def _extract_namespaces(self, g: Graph):
+        for prefix, uri in g.namespaces():
+            self.ns[prefix] = uri
+
+    def _build_class_hierarchy(self, g: Graph):
+        for cls in g.subjects(RDF.type, OWL.Class):
+            self.class_hierarchy[str(cls)] = []
+
+        for sub_class, _, super_class in g.triples((None, RDFS.subClassOf, None)):
+            if str(sub_class) in self.class_hierarchy:
+                self.class_hierarchy[str(sub_class)].append(str(super_class))
+
+    def _extract_classes(self, g: Graph) -> List[Dict]:
+        classes = []
+        for class_uri in g.subjects(RDF.type, OWL.Class):
+            class_name = self._uri_to_name(class_uri)
+            classes.append({
+                "name": class_name,
+                "uri": str(class_uri),
+                "parent_classes": [
+                    self._uri_to_name(uri)
+                    for uri in self.class_hierarchy.get(str(class_uri), [])
+                ],
+                "comment": self._get_class_comment(g, class_uri)
+            })
+        return classes
+
+    def _extract_properties(self, g: Graph) -> List[Dict]:
+        properties = []
+        for prop in g.subjects(RDF.type, OWL.ObjectProperty):
+            properties.append(self._process_property(g, prop, "ObjectProperty"))
+
+        for prop in g.subjects(RDF.type, OWL.DatatypeProperty):
+            properties.append(self._process_property(g, prop, "DatatypeProperty"))
+
+        return properties
+
+    def _process_property(self, g: Graph, prop: URIRef, prop_type: str) -> Dict:
+        prop_name = self._uri_to_name(prop)
+        domain = self._get_property_domain(g, prop)
+        range_ = self._get_property_range(g, prop, prop_type)
+
+        return {
             "name": prop_name,
-            "domain": domain_name,
-            "range": range_name
-        })
+            "type": prop_type,
+            "domain": domain,
+            "range": range_,
+            "comment": self._get_property_comment(g, prop)
+        }
 
-    # 5. Генерация Python-кода
-    template = Template("""
-# Автосгенерированный код из OWL
+    def _generate_code(self, owl_path: Path, classes: List[Dict],
+                       properties: List[Dict], output_dir: str):
+        template = Template('''\
+# Автосгенерированный код из OWL-онтологии
 # Источник: {{ owl_file }}
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List, Optional
+from datetime import date, datetime
 
-{% for class_name in classes %}
+{% for cls in classes %}
 @dataclass
-class {{ class_name }}:
-    \"\"\"Класс {{ class_name }} из онтологии\"\"\"
-    pass
+class {{ cls.name }}{% if cls.parent_classes %}({{ cls.parent_classes|join(', ') }}){% endif %}:
+    """{{ cls.comment or cls.name }}"""
+    {% for prop in properties if prop.domain == cls.name %}
+    {% if prop.type == 'ObjectProperty' %}
+    {{ prop.name }}: {% if prop.range == cls.name %}List['{{ prop.range }}']{% else %}Optional['{{ prop.range }}']{% endif %} = None
+    """{{ prop.comment or prop.name }} ({{ prop.type }})"""
+    {% else %}
+    {{ prop.name }}: {{ prop.range }} = None
+    """{{ prop.comment or prop.name }} ({{ prop.type }})"""
+    {% endif %}
+    {% endfor %}
+
 {% endfor %}
 
 class OntologyModel:
-    \"\"\"Модель онтологии со связями\"\"\"
+    """Фасад для работы с онтологией"""
 
     def __init__(self):
         {% for prop in properties %}
-        self.{{ prop.name }}: Dict[{% if prop.domain %}{{ prop.domain }}{% else %}str{% endif %}, {% if prop.range %}{{ prop.range }}{% else %}str{% endif %}] = {}
-        \"\"\"{{ prop.name }}: {{ prop.domain }} -> {{ prop.range }}\"\"\"
+        self.{{ prop.name }}_relations: Dict[str, List[str]] = {}
         {% endfor %}
-""")
+''')
 
-    generated_code = template.render(
-        owl_file=str(owl_path),
-        classes=sorted(classes),
-        properties=properties
-    )
+        output_path = Path(output_dir) / "ontology_model.py"
+        output_path.parent.mkdir(exist_ok=True)
 
-    # 6. Сохранение результата
-    output_path = owl_path.parent / "generated" / "ontology_model.py"
-    output_path.parent.mkdir(exist_ok=True)
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(template.render(
+                owl_file=str(owl_path),
+                classes=classes,
+                properties=properties
+            ))
+        logging.info(f"Сгенерирован Python-код: {output_path}")
 
-    try:
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(generated_code)
-        logging.info(f"Python-код успешно сгенерирован: {output_path}")
-    except IOError as e:
-        raise IOError(f"Ошибка записи в файл {output_path}: {str(e)}")
+    def _uri_to_name(self, uri: Union[URIRef, str]) -> str:
+        return str(uri).split('#')[-1].split('/')[-1]
+
+    def _get_class_comment(self, g: Graph, class_uri: URIRef) -> Optional[str]:
+        return str(g.value(class_uri, RDFS.comment)) if g.value(class_uri, RDFS.comment) else None
+
+    def _get_property_comment(self, g: Graph, prop: URIRef) -> Optional[str]:
+        return str(g.value(prop, RDFS.comment)) if g.value(prop, RDFS.comment) else None
+
+    def _get_property_domain(self, g: Graph, prop: URIRef) -> Optional[str]:
+        domain = g.value(prop, RDFS.domain)
+        return self._uri_to_name(domain) if domain else None
+
+    def _get_property_range(self, g: Graph, prop: URIRef, prop_type: str) -> str:
+        if prop_type == "DatatypeProperty":
+            range_ = g.value(prop, RDFS.range)
+            if str(range_) == str(XSD.string):
+                return "str"
+            elif str(range_) == str(XSD.integer):
+                return "int"
+            elif str(range_) == str(XSD.date):
+                return "date"
+            return "str"  # fallback
+        else:
+            range_ = g.value(prop, RDFS.range)
+            return self._uri_to_name(range_) if range_ else "str"
+
+
+def generate_python_classes(owl_file: str, output_dir: str = "generated") -> None:
+    converter = OwlToPythonConverter()
+    converter.convert(owl_file, output_dir)
 
 
 if __name__ == "__main__":
-    # Пример использования
-    try:
-        generate_python_classes("university_ontology_v1.owl")
-    except Exception as e:
-        print(f"Ошибка: {str(e)}")
+    import sys
+
+    if len(sys.argv) > 1:
+        generate_python_classes(sys.argv[1])
+    else:
+        print("Укажите путь к OWL-файлу")
