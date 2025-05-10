@@ -5,6 +5,7 @@ from diff_owl import compare_owl
 from converter import OntologyConverter
 import os
 from pathlib import Path
+from owl_to_cpp import generate_cpp_classes
 
 PROJECT_DIR = Path(__file__).parent.resolve()
 
@@ -32,6 +33,7 @@ def evolve_model(cfg: DictConfig) -> None:
     generate_python_classes(str(owl_path))
     print("✓ Python-код успешно сгенерирован")
 
-
+    generate_cpp_classes(str(owl_path), "generated_cpp")
+    print("✓ C++ код успешно сгенерирован")
 if __name__ == "__main__":
     evolve_model()

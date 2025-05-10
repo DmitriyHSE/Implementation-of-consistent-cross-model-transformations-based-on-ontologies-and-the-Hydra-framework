@@ -4,3 +4,4 @@ defaults:
 
 owl_file: "university_ontology_v1.owl"  # Относительный путь от папки проекта
 output_dir: "generated/v1"
+source_file: "university.yaml"

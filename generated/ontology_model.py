@@ -1,26 +1,46 @@
-
-# Автосгенерированный код из OWL
-# Источник: C:\Users\tsiru\PycharmProjects\Coursework\university_ontology_v1.owl
+# Автосгенерированный код из OWL-онтологии
+# Источник: C:\Users\my18f\OneDrive\Рабочий стол\HSE\программирование\2 курс курсач\Implementation-of-consistent-cross-model-transformations-based-on-ontologies-and-the-Hydra-framework-main\university.owl
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List, Optional
+from datetime import date, datetime
+
+
+@dataclass
+class Student:
+    """Студент университета"""
+    
+    
+    enrolledIn: Optional['Course'] = None
+    """enrolledIn (ObjectProperty)"""
+    
+    
+    
+    studentId: str = None
+    """studentId (DatatypeProperty)"""
+    
+    
 
 
 @dataclass
 class Course:
-    """Класс Course из онтологии"""
-    pass
+    """Учебный курс"""
+    
+    
+    creditHours: int = None
+    """creditHours (DatatypeProperty)"""
+    
+    
 
-@dataclass
-class Student:
-    """Класс Student из онтологии"""
-    pass
 
 
 class OntologyModel:
-    """Модель онтологии со связями"""
+    """Фасад для работы с онтологией"""
 
     def __init__(self):
         
-        self.enrolledIn: Dict[Student, Course] = {}
-        """enrolledIn: Student -> Course"""
+        self.enrolledIn_relations: Dict[str, List[str]] = {}
+        
+        self.creditHours_relations: Dict[str, List[str]] = {}
+        
+        self.studentId_relations: Dict[str, List[str]] = {}
         

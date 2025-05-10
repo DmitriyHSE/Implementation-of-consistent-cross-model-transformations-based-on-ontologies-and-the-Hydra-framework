@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:owl="http://www.w3.org/2002/07/owl#"
+  xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+>
+  <owl:DatatypeProperty rdf:about="http://example.org/ontology#creditHours">
+    <rdfs:domain rdf:resource="http://example.org/ontology#Course"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#integer"/>
+  </owl:DatatypeProperty>
+  <owl:DatatypeProperty rdf:about="http://example.org/ontology#studentId">
+    <rdfs:domain rdf:resource="http://example.org/ontology#Student"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+  </owl:DatatypeProperty>
+  <owl:ObjectProperty rdf:about="http://example.org/ontology#enrolledIn">
+    <rdfs:domain rdf:resource="http://example.org/ontology#Student"/>
+    <rdfs:range rdf:resource="http://example.org/ontology#Course"/>
+  </owl:ObjectProperty>
+  <owl:Class rdf:about="http://example.org/ontology#Student">
+    <rdfs:comment xml:lang="ru">Студент университета</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="http://example.org/ontology#Course">
+    <rdfs:comment xml:lang="ru">Учебный курс</rdfs:comment>
+  </owl:Class>
+</rdf:RDF>

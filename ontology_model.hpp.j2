@@ -1,0 +1,20 @@
+// Автосгенерированный C++ код из OWL
+#pragma once
+#include <string>
+#include <vector>
+
+{% for cls in classes %}
+class {{ cls.name }} {
+public:
+    {{ cls.name }}() = default;
+    ~{{ cls.name }}() = default;
+
+    {% for prop in properties if prop.domain == cls.name %}
+    {% if prop.type == "ObjectProperty" %}
+    std::vector<{{ prop.range }}> {{ prop.name }};  // {{ prop.comment or prop.name }}
+    {% else %}
+    {{ "int" if prop.range == "int" else "std::string" }} {{ prop.name }};  // {{ prop.comment or prop.name }}
+    {% endif %}
+    {% endfor %}
+};
+{% endfor %}
