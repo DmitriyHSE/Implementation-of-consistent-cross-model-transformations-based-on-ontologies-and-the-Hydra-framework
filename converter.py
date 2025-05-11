@@ -1,10 +1,9 @@
-from rdflib import Graph, URIRef, Namespace, RDF, OWL, RDFS, XSD
+from rdflib import Graph, URIRef, Namespace, RDF, OWL, RDFS, XSD, Literal
 from pathlib import Path
 import yaml
 import json
 import xml.etree.ElementTree as ET
 from typing import Dict, Any
-
 
 class OntologyConverter:
     def __init__(self):
@@ -13,20 +12,21 @@ class OntologyConverter:
         self._init_namespaces()
 
     def _init_namespaces(self):
-        """Инициализация стандартных неймспейсов"""
         self.graph.bind("", self.base_ns)
         self.graph.bind("owl", OWL)
         self.graph.bind("rdfs", RDFS)
         self.graph.bind("xsd", XSD)
+        self.graph.add((self.base_ns["Ontology"], RDF.type, OWL.Ontology))
+        self.graph.add((self.base_ns["Ontology"], OWL.versionInfo, Literal("1.0.0")))
 
-    def convert(self, input_file: str, output_owl: str) -> None:
-        """Основной метод конвертации"""
+    def convert(self, input_file: str, output_owl: str, version: str = "1.0.0") -> None:
         path = Path(input_file)
-        self.graph = Graph()  # Очищаем граф перед новой конвертацией
+        self.graph = Graph()
         self._init_namespaces()
+        self.graph.set((self.base_ns["Ontology"], OWL.versionInfo, Literal(version)))
 
         if not path.exists():
-            raise FileNotFoundError(f"Файл не найден: {input_file}")
+            raise FileNotFoundError(f"File not found: {input_file}")
 
         if path.suffix == '.xml':
             self._from_xml(path)
@@ -35,12 +35,11 @@ class OntologyConverter:
         elif path.suffix == '.json':
             self._from_json(path)
         else:
-            raise ValueError(f"Неподдерживаемый формат: {path.suffix}")
+            raise ValueError(f"Unsupported format: {path.suffix}")
 
         self._serialize(output_owl)
 
     def _serialize(self, output_path: str):
-        """Сериализация в файл с обработкой ошибок"""
         try:
             self.graph.serialize(
                 destination=output_path,
@@ -48,10 +47,9 @@ class OntologyConverter:
                 encoding='utf-8'
             )
         except Exception as e:
-            raise IOError(f"Ошибка сохранения OWL: {str(e)}")
+            raise IOError(f"Error saving OWL: {str(e)}")
 
     def _from_xml(self, file_path: Path):
-        """Конвертация XML в OWL"""
         try:
             tree = ET.parse(file_path)
             root = tree.getroot()
@@ -60,34 +58,35 @@ class OntologyConverter:
                 self._process_class(cls)
 
         except ET.ParseError as e:
-            raise ValueError(f"Ошибка парсинга XML: {str(e)}")
+            raise ValueError(f"XML parsing error: {str(e)}")
 
     def _from_yaml(self, file_path: Path):
-        """Конвертация YAML в OWL"""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = yaml.safe_load(f)
                 self._process_dict(data)
         except yaml.YAMLError as e:
-            raise ValueError(f"Ошибка парсинга YAML: {str(e)}")
+            raise ValueError(f"YAML parsing error: {str(e)}")
 
     def _from_json(self, file_path: Path):
-        """Конвертация JSON в OWL"""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 self._process_dict(data)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Ошибка парсинга JSON: {str(e)}")
+            raise ValueError(f"JSON parsing error: {str(e)}")
 
     def _process_dict(self, data: Dict[str, Any]):
-        """Обработка словарной структуры (YAML/JSON)"""
         if not isinstance(data, dict):
-            raise ValueError("Ожидается словарь в корне документа")
+            raise ValueError("Expected dictionary at document root")
 
         for class_name, class_data in data.get('classes', {}).items():
             class_uri = self.base_ns[class_name]
             self.graph.add((class_uri, RDF.type, OWL.Class))
+
+            if 'parent' in class_data:
+                parent_uri = self.base_ns[class_data['parent']]
+                self.graph.add((class_uri, RDFS.subClassOf, parent_uri))
 
             if isinstance(class_data, dict):
                 if 'comment' in class_data:
@@ -97,13 +96,16 @@ class OntologyConverter:
                     self._process_property(prop_name, prop_data, class_uri)
 
     def _process_class(self, cls_element):
-        """Обработка класса из XML"""
         class_name = cls_element.get('name')
         if not class_name:
-            raise ValueError("Класс без атрибута name")
+            raise ValueError("Class missing name attribute")
 
         class_uri = self.base_ns[class_name]
         self.graph.add((class_uri, RDF.type, OWL.Class))
+
+        if 'parent' in cls_element.attrib:
+            parent_uri = self.base_ns[cls_element.get('parent')]
+            self.graph.add((class_uri, RDFS.subClassOf, parent_uri))
 
         if 'comment' in cls_element.attrib:
             self._add_comment(class_uri, cls_element.get('comment'))
@@ -112,14 +114,12 @@ class OntologyConverter:
             self._process_xml_property(prop, class_uri)
 
     def _process_property(self, prop_name: str, prop_data: Any, domain_uri: URIRef):
-        """Обработка свойства из словаря"""
         if isinstance(prop_data, dict):
             self._process_structured_property(prop_name, prop_data, domain_uri)
         elif isinstance(prop_data, str):
             self._add_object_property(prop_name, domain_uri, prop_data)
 
     def _process_structured_property(self, prop_name: str, prop_data: Dict, domain_uri: URIRef):
-        """Обработка свойства с дополнительными атрибутами"""
         prop_type = prop_data.get('type', 'object')
 
         if prop_type == 'object':
@@ -138,10 +138,9 @@ class OntologyConverter:
             )
 
     def _process_xml_property(self, prop_element, domain_uri: URIRef):
-        """Обработка свойства из XML"""
         prop_name = prop_element.get('name')
         if not prop_name:
-            raise ValueError("Свойство без атрибута name")
+            raise ValueError("Property missing name attribute")
 
         prop_type = prop_element.get('type', 'object')
         range_val = prop_element.get('range')
@@ -161,8 +160,8 @@ class OntologyConverter:
                 prop_element.get('comment')
             )
 
-    def _add_object_property(self, prop_name: str, domain_uri: URIRef, range_val: str = None, comment: str = None):
-        """Добавление объектного свойства"""
+    def _add_object_property(self, prop_name: str, domain_uri: URIRef,
+                           range_val: str = None, comment: str = None):
         prop_uri = self.base_ns[prop_name]
         self.graph.add((prop_uri, RDF.type, OWL.ObjectProperty))
         self.graph.add((prop_uri, RDFS.domain, domain_uri))
@@ -173,9 +172,8 @@ class OntologyConverter:
         if comment:
             self._add_comment(prop_uri, comment)
 
-    def _add_datatype_property(self, prop_name: str, domain_uri: URIRef, range_type: str = 'string',
-                               comment: str = None):
-        """Добавление свойства данных"""
+    def _add_datatype_property(self, prop_name: str, domain_uri: URIRef,
+                             range_type: str = 'string', comment: str = None):
         prop_uri = self.base_ns[prop_name]
         self.graph.add((prop_uri, RDF.type, OWL.DatatypeProperty))
         self.graph.add((prop_uri, RDFS.domain, domain_uri))
@@ -185,12 +183,9 @@ class OntologyConverter:
             self._add_comment(prop_uri, comment)
 
     def _add_comment(self, subject: URIRef, comment: str):
-        """Добавление комментария"""
-        from rdflib import Literal
-        self.graph.add((subject, RDFS.comment, Literal(comment, lang='ru')))
+        self.graph.add((subject, RDFS.comment, Literal(comment, lang='en')))
 
     def _get_xsd_type(self, type_name: str) -> URIRef:
-        """Получение XSD типа для свойства данных"""
         type_map = {
             'string': XSD.string,
             'int': XSD.integer,

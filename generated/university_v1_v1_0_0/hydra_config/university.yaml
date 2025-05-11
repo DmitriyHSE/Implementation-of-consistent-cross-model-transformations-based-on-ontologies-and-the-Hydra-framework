@@ -1,0 +1,12 @@
+University:
+  name: University
+  version: 1.0.0
+  properties:
+    name:
+      type: DatatypeProperty
+      range: str
+      comment: null
+    established:
+      type: DatatypeProperty
+      range: int
+      comment: null

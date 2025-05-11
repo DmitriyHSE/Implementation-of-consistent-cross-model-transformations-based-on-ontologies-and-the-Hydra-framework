@@ -1,0 +1,11 @@
+{
+  "classes": {
+    "University": {
+      "comment": "Educational institution",
+      "properties": {
+        "name": {"type": "data", "range": "string"},
+        "established": {"type": "data", "range": "int"}
+      }
+    }
+  }
+}

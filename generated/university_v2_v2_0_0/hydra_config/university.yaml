@@ -1,0 +1,16 @@
+University:
+  name: University
+  version: 2.0.0
+  properties:
+    departments:
+      type: ObjectProperty
+      range: Department
+      comment: null
+    name:
+      type: DatatypeProperty
+      range: str
+      comment: null
+    founding_year:
+      type: DatatypeProperty
+      range: int
+      comment: Renamed from established

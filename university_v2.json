@@ -1,0 +1,25 @@
+{
+  "classes": {
+    "University": {
+      "comment": "Educational institution v2",
+      "properties": {
+        "name": {"type": "data", "range": "string"},
+        "founding_year": {
+          "type": "data",
+          "range": "int",
+          "comment": "Renamed from established"
+        },
+        "departments": {
+          "type": "object",
+          "range": "Department",
+          "cardinality": "many"
+        }
+      }
+    },
+    "Department": {
+      "properties": {
+        "name": {"type": "data", "range": "string"}
+      }
+    }
+  }
+}
