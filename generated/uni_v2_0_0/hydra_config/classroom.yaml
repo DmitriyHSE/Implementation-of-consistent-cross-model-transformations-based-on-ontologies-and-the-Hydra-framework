@@ -1,0 +1,16 @@
+Classroom:
+  name: Classroom
+  version: 2.0.0
+  properties:
+    hasProjector:
+      type: DatatypeProperty
+      range: bool
+      comment: null
+    capacity:
+      type: DatatypeProperty
+      range: int
+      comment: null
+    number:
+      type: DatatypeProperty
+      range: str
+      comment: null

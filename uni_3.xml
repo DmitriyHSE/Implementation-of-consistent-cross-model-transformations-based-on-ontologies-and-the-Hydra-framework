@@ -1,0 +1,44 @@
+<ontology>
+  <!-- Основные классы -->
+  <class name="Person" comment="Базовый класс для всех людей">
+    <property name="name" type="data" range="string" comment="Полное имя"/>
+    <property name="birthDate" type="data" range="date"/>
+  </class>
+
+  <class name="Student" parent="Person" comment="Студент университета">
+    <property name="studentId" type="data" range="string"/>
+    <property name="enrolledIn" type="object" range="Course"/>
+    <property name="advisor" type="object" range="Professor"/>
+    <method name="get_courses" return="List[Course]" comment="Возвращает список курсов"/>
+  </class>
+
+  <class name="Professor" parent="Person" comment="Преподаватель">
+    <property name="department" type="data" range="string"/>
+    <property name="teaches" type="object" range="Course" maxCardinality="3"/>
+    <method name="add_course" return="bool" comment="Добавляет новый курс">
+      <param name="course" type="Course"/>
+    </method>
+  </class>
+
+  <!-- Академические сущности -->
+  <class name="Course" comment="Учебный курс">
+    <property name="title" type="data" range="string"/>
+    <property name="code" type="data" range="string"/>
+    <property name="credits" type="data" range="integer"/>
+    <property name="schedule" type="object" range="Schedule"/>
+    <method name="get_students" return="List[Student]"/>
+  </class>
+
+  <class name="Schedule" comment="Расписание занятий">
+    <property name="weekday" type="data" range="string"/>
+    <property name="startTime" type="data" range="time"/>
+    <property name="room" type="object" range="Classroom"/>
+  </class>
+
+  <!-- Инфраструктура -->
+  <class name="Classroom" comment="Аудитория">
+    <property name="number" type="data" range="string"/>
+    <property name="capacity" type="data" range="integer"/>
+    <property name="hasProjector" type="data" range="boolean"/>
+  </class>
+</ontology>

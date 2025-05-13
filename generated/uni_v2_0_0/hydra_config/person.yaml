@@ -1,0 +1,12 @@
+Person:
+  name: Person
+  version: 2.0.0
+  properties:
+    birthDate:
+      type: DatatypeProperty
+      range: date
+      comment: null
+    name:
+      type: DatatypeProperty
+      range: str
+      comment: "\u041F\u043E\u043B\u043D\u043E\u0435 \u0438\u043C\u044F"

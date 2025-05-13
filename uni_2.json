@@ -1,0 +1,22 @@
+{
+  "classes": {
+    "University": {
+      "comment": "Высшее учебное заведение",
+      "properties": {
+        "name": {"type": "string", "comment": "Название университета"},
+        "founding_year": {"type": "int", "comment": "Год основания"},
+        "departments": {
+          "type": "object",
+          "range": "Department",
+          "comment": "Факультеты университета"
+        }
+      }
+    },
+    "Department": {
+      "comment": "Факультет",
+      "properties": {
+        "name": {"type": "string", "comment": "Название факультета"}
+      }
+    }
+  }
+}
