@@ -1,6 +1,0 @@
-defaults:
-  - version: version_1
-  - _self_
-
-owl_file: "university_ontology_v1.owl"  # Относительный путь от папки проекта
-output_dir: "generated/v1"

@@ -1,7 +1,0 @@
-defaults:
-  - override /version: version_1
-
-owl_file: "university_ontology_v2.owl"
-output_dir: "generated/v2"
-previous_version:
-  owl_file: "university_ontology_v1.owl"
