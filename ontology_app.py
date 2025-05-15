@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox, ttk
 from pathlib import Path
 from converter import OntologyConverter
 from owl_to_python import generate_python_classes
+from owl_to_java import generate_java_classes
 import logging
 import semver
 from typing import Optional
@@ -25,6 +26,7 @@ class OntologyApp:
         self.version = tk.StringVar(value="1.0.0")
         self.status = tk.StringVar(value="Ready")
         self.folder_prefix = tk.StringVar(value="ontology")
+        self.java_package = tk.StringVar(value="generated")
 
         self.create_widgets()
         self.ensure_output_dir()
@@ -104,19 +106,40 @@ class OntologyApp:
             command=self.select_owl_file
         ).pack(side=tk.LEFT)
 
-        self.generate_btn = ttk.Button(
+        self.generate_python_btn = ttk.Button(
             python_frame,
             text="Generate Python",
             command=self.generate_python,
             state=tk.DISABLED
         )
-        self.generate_btn.pack(side=tk.LEFT, padx=10)
+        self.generate_python_btn.pack(side=tk.LEFT, padx=10)
 
         ttk.Checkbutton(
             python_frame,
             text="Enable Hydra",
             variable=self.hydra_mode
         ).pack(side=tk.LEFT)
+
+        # Java generation section
+        java_frame = ttk.LabelFrame(main_frame, text="4. Generate Java Code", padding=10)
+        java_frame.pack(fill=tk.X, pady=5)
+
+        ttk.Button(
+            java_frame,
+            text="Browse OWL File",
+            command=self.select_owl_file
+        ).pack(side=tk.LEFT)
+
+        self.generate_java_btn = ttk.Button(
+            java_frame,
+            text="Generate Java",
+            command=self.generate_java,
+            state=tk.DISABLED
+        )
+        self.generate_java_btn.pack(side=tk.LEFT, padx=10)
+
+        ttk.Label(java_frame, text="Package:").pack(side=tk.LEFT, padx=(10, 5))
+        ttk.Entry(java_frame, textvariable=self.java_package, width=30).pack(side=tk.LEFT)
 
         # Output naming section
         naming_frame = ttk.LabelFrame(main_frame, text="Output Naming", padding=10)
@@ -127,7 +150,7 @@ class OntologyApp:
 
         ttk.Label(naming_frame, text="Output:").pack(side=tk.LEFT, padx=(20, 5))
         ttk.Entry(
-            python_frame,
+            naming_frame,
             textvariable=self.base_output_dir,
             width=30
         ).pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -192,7 +215,10 @@ class OntologyApp:
         self.convert_btn.config(
             state=tk.NORMAL if self.source_file.get() else tk.DISABLED
         )
-        self.generate_btn.config(
+        self.generate_python_btn.config(
+            state=tk.NORMAL if self.owl_file.get() else tk.DISABLED
+        )
+        self.generate_java_btn.config(
             state=tk.NORMAL if self.owl_file.get() else tk.DISABLED
         )
 
@@ -267,7 +293,41 @@ class OntologyApp:
                 str(e),
                 parent=self.root
             )
-            self.set_status("Generation failed")
+            self.set_status("Python generation failed")
+
+    def generate_java(self):
+        owl_file = self.owl_file.get()
+        previous_owl = self.previous_owl_file.get() if self.previous_owl_file.get() else None
+        base_output_dir = self.base_output_dir.get()
+        folder_prefix = self.folder_prefix.get()
+        java_package = self.java_package.get()
+
+        try:
+            self.ensure_output_dir()
+            self.set_status("Generating Java code...")
+
+            output_dir = generate_java_classes(
+                owl_file=owl_file,
+                base_output_dir=base_output_dir,
+                package_name=java_package,
+                version=None,
+                previous_version=previous_owl,
+                folder_prefix=folder_prefix
+            )
+
+            self.set_status(f"Java code generated in: {output_dir}")
+            messagebox.showinfo(
+                "Success",
+                f"Java code successfully generated in:\n{output_dir}",
+                parent=self.root
+            )
+        except Exception as e:
+            messagebox.showerror(
+                "Generation Error",
+                str(e),
+                parent=self.root
+            )
+            self.set_status("Java generation failed")
 
 if __name__ == "__main__":
     root = tk.Tk()
