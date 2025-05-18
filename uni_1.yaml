@@ -1,0 +1,10 @@
+classes:
+  University:
+    comment: "Высшее учебное заведение"
+    properties:
+      name:
+        type: string
+        comment: "Название университета"
+      established:
+        type: int
+        comment: "Год основания"
