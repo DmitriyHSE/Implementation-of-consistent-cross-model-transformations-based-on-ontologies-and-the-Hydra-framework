@@ -1,0 +1,16 @@
+Schedule:
+  name: Schedule
+  version: 2.0.0
+  properties:
+    room:
+      type: ObjectProperty
+      range: Classroom
+      comment: null
+    weekday:
+      type: DatatypeProperty
+      range: str
+      comment: null
+    startTime:
+      type: DatatypeProperty
+      range: str
+      comment: null

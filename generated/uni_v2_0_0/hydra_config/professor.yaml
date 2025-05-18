@@ -1,0 +1,12 @@
+Professor:
+  name: Professor
+  version: 2.0.0
+  properties:
+    teaches:
+      type: ObjectProperty
+      range: Course
+      comment: null
+    department:
+      type: DatatypeProperty
+      range: str
+      comment: null
