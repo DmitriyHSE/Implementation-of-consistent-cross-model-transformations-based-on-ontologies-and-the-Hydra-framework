@@ -1,7 +1,0 @@
-# requirements.txt
-rdflib>=6.0.0
-pyyaml>=5.4.1
-jinja2>=3.0.0
-hydra-core>=1.1.0
-omegaconf>=2.1.0
-semver>=2.13.0
